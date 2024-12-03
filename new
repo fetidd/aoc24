@@ -1,0 +1,12 @@
+if [[ -n $1 ]]; 
+then
+  touch "./src/day$1.py"
+  echo -e "import utils\n\nclass Day$1:\n\tdef main(self, data):\n\t\treturn data\n" > "./src/day$1.py"
+
+  touch "./puzzle_input/day$1.txt"
+
+  touch "./test/test_day$1.py"
+  echo -e "import pytest\nfrom ..src.day$1 import Day$1\n\ndef test_main():\n\tDay$1().main([])" > "./test/test_day$1.py"
+else
+  echo "Need a day argument!"
+fi

@@ -1,0 +1,8 @@
+if [[ -n $1 ]];
+then
+  rm ./src/day$1.py
+  rm ./test/test_day$1.py
+  rm ./puzzle_input/day$1.txt
+else
+  echo "Need a day argument!"
+fi
