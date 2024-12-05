@@ -3,7 +3,8 @@ from ..src.day2 import Day2, cmp
 
 def test_main():
     data = "7 6 4 2 1\n1 2 7 8 9\n9 7 6 2 1\n1 3 2 4 5\n8 6 4 4 1\n1 3 6 7 9"
-    assert Day2().main(data.split("\n")) == 4
+    assert Day2().main(data.split("\n")) == 2 # part a
+    # assert Day2().main(data.split("\n")) == 4 # part b
 
 @pytest.mark.parametrize(
     "a, b, expected",
@@ -29,13 +30,14 @@ def test_cmp(a, b, expected):
         ("7 6 4 2 1", 1),
         ("1 2 7 8 9", 0),
         ("9 7 6 2 1", 0),
-        ("1 3 2 4 5", 1),
-        ("8 6 4 4 1", 1),
+        ("1 3 2 4 5", 0), # safe in part b
+        ("8 6 4 4 1", 0), # safe in part b
         ("1 3 6 7 9", 1),
 
+        # FOR PART B
         # from reddit
-        ("19 23 24 27 29", 1),
-        ("23 19 24 27 29", 1),
+        # ("19 23 24 27 29", 1),
+        # ("23 19 24 27 29", 1),
     
         # # extra tests
         # ("1 2 3 4 5", 1),
