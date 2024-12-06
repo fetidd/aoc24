@@ -2,6 +2,7 @@ import utils
 
 class Day1:
     def main(self, data):
+        data = data.split("\n")[:-1]
         left, right = [], []
         for line in data:
             l, r = tuple(line.split("   ")[:2])
