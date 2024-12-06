@@ -8,5 +8,5 @@ def parse_line(line, split_char=" ", strip_char=" "):
     return [int(x.strip(strip_char)) for x in line.split(split_char)]
 
 def cmp(a, b):
-    print(f"comparing {a} and {b}", end="")    
-    return (a > b) - (a < b) if 0 < abs(a - b) <= 3 else 0
+    print(f"cmp {a} {b}")
+    return (a > b) - (a < b)
