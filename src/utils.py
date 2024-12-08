@@ -1,6 +1,6 @@
 AOC_ROOT = "."
 
-def get_input(day: str) -> list[str]:
+def get_input(day: str):
     data = open(f"{AOC_ROOT}/puzzle_input/day{day}.txt").read()
     if data[-1] == "":
         data.pop(-1)

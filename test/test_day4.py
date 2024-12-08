@@ -25,3 +25,18 @@ S.S.S.S.SS
 
 def test_main():
 	assert Day4().main(EXAMPLE) == 18
+
+	
+@pytest.mark.parametrize(
+	"input_grid, expected",
+	[
+		(
+".XMAS..S..\
+.M..A.A...\
+.A..MM....\
+.S..XMAS..\
+....SAMX..", 6),
+	]
+)
+def test_find(input_grid, expected):
+	assert expected == Day4().find(input_grid)
