@@ -23,6 +23,7 @@ S.S.S.S.SS
 ..M.M.M.MM
 .X.X.XMASX"""
 
+# @pytest.mark.skip("todoben")
 def test_main():
 	assert Day4().main(EXAMPLE) == 18
 
@@ -31,10 +32,16 @@ def test_main():
 	"input_grid, expected",
 	[
 		(
-".XMAS..S..\
-.M..A.A...\
-.A..MM....\
-.S..XMAS..\
+".XMAS..S..\n\
+.M..A.A...\n\
+.A..MM..XM\n\
+AS..XMAS..\n\
+....SAMX..", 6),
+		(
+"AXMASXMSMX\n\
+.M..A.A...\n\
+.A..MM..XM\n\
+AS..XMAS..\n\
 ....SAMX..", 6),
 	]
 )

@@ -1,39 +1,44 @@
 import utils
 
+TARGET = "MAS"
+
 class Day4:
 	def main(self, data):
-		data = data.replace("\n", "") # remove newlines because algorithm won't need them
-		return data
+		line_length = data.index("\n")
+		return self.find(data, line_length=line_length)
 
 	def find(self, grid, line_length=10):
 		print(grid)
 		count = 0
 		for i in range(len(grid)):
-			char = grid[i]
-			if char == 'X':
+			if grid[i] == 'X':
 				# try to find XMAS
-				iM, iA, iS = get_check_indices(i, line_length, len(grid))
-				if grid[iM] == "M" and grid[iA] == "A" and grid[iS] == "S":
-					count += 1
+				multipliers = (
+					line_length - 1,
+					line_length,
+					line_length + 1,
+					1,
+				)
+				for multiplier in multipliers:
+					for mod in (lambda i, f: i - f, lambda i, f: i + f):
+						found = True
+						print(f"searching from {i} for:")
+						for x in range(3):
+							search_index = mod(i, ((x + 1) * multiplier))
+							print(f"\t{TARGET[x]} at {search_index}", end=" ")
+							if 0 <= search_index < len(grid):
+								if grid[search_index] != TARGET[x]:
+									print("but couldn't find it!")
+									found = False
+									break
+								print()
+							else:
+								print("but went off the end of the grid!")
+								found = False
+								break
+						if found:
+							print("\tfound XMAS!")
+							count += 1
 		return count
 
-	def get_check_indices(index, line_length, grid_length):
-		"""
-			..........
-			...123....
-			...4.6....
-			...789....
-			..........
-		"""
-		to_try = (
-			index - line_length - 1,
-			index - line_length,
-			index - line_length + 1,
-			index - 1,
-			index + 1,
-			index + line_length - 1,
-			index + line_length,
-			index + line_length + 1,
-		)
-		return [i for i in to_try if 0 < i < grid_length]
 				
