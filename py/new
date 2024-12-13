@@ -6,7 +6,7 @@ then
   touch "./puzzle_input/day$1.txt"
 
   touch "./test/test_day$1.py"
-  echo -e "import pytest\nfrom ..src.day$1 import Day$1\n\ndef test_main():\n\tassert Day$1().main([]) == []" > "./test/test_day$1.py"
+  echo -e "import pytest\nfrom day$1 import Day$1\n\ndef test_main():\n\tassert Day$1().main([]) == []" > "./test/test_day$1.py"
 else
   echo "Need a day argument!"
 fi
