@@ -1,5 +1,5 @@
 import pytest
-from ..src.day4 import Day4
+from day4 import Day4
 
 EXAMPLE = """MMMSXXMASM
 MSAMXMSMSA
@@ -25,7 +25,7 @@ S.S.S.S.SS
 
 # @pytest.mark.skip("todoben")
 def test_main():
-	assert Day4().main(EXAMPLE) == 18
+	assert Day4().main(EXAMPLE) == 9
 
 	
 @pytest.mark.parametrize(
