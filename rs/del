@@ -1,0 +1,7 @@
+if [[ -n $1 ]];
+then
+  rm "$HOME/aoc24/rs/src/day$1.rs"
+  rm "$HOME/aoc24/puzzle_input/day$1.txt"
+else
+  echo "Need a day argument!"
+fi

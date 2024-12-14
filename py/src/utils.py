@@ -1,9 +1,7 @@
-AOC_ROOT = "."
+from pathlib import Path
 
 def get_input(day: str):
-    data = open(f"{AOC_ROOT}/puzzle_input/day{day}.txt").read()
-    if data[-1] == "":
-        data.pop(-1)
+    data = open(Path.home() / f"aoc24/puzzle_input/day{day}.txt").read().rstrip()
     return data
     
 def parse_line(line, split_char=" ", strip_char=" "):
