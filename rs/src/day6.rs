@@ -1,4 +1,4 @@
-use std::{collections::HashSet, rc::Rc};
+use std::collections::HashSet;
 
 // use aoc24::utils;
 
@@ -15,70 +15,111 @@ fn process(input: &str) -> String {
         .position(|ch| ch == '\n')
         .expect("input is single line!");
     let rows = input.len() / cols;
-    let mut visited = HashSet::new();
+    let mut obstacles = HashSet::new();
     for i in 0..input.len() {
         let g = match input.chars().nth(i) {
             Some(dir @ ('^' | '>' | 'v' | '<')) => Some(Guard::new(dir, i)),
-            Some(_) => None,
-            None => None,
+            _ => None,
         };
         if let Some(g) = g {
-            // run guard path
-            let new_visited = run_guard(g, (&input, rows, cols));
-            visited.extend(new_visited);
+            let (visited, _) = run_guard(g, (&input, rows, cols), None);
+            // let new_grid: String = input
+            //     .char_indices()
+            //     .map(|(i, ch)| {
+            //         if visited
+            //             .iter()
+            //             .map(|(j, _)| *j)
+            //             .collect::<HashSet<usize>>()
+            //             .contains(&i)
+            //         {
+            //             'X'
+            //         } else {
+            //             ch
+            //         }
+            //     })
+            //     .collect();
+            // println!("\n{}", new_grid);
+            for v in visited {
+                let obst = match v.1 {
+                    Dir::N => (v.0 as i32) - (cols as i32) - 1,
+                    Dir::E => (v.0 as i32) + 1,
+                    Dir::S => (v.0 as i32) + (cols as i32) + 1,
+                    Dir::W => (v.0 as i32) - 1,
+                };
+                if obst >= 0 && obst < input.len() as i32 && input.chars().nth(i).unwrap() != '\n' {
+                    if let (_, true) = run_guard(g, (&input, rows, cols), Some(obst as usize)) {
+                        obstacles.insert(obst);
+                    }
+                }
+            }
         }
     }
-    visited.len().to_string()
+    let new_grid: String = input
+        .char_indices()
+        .map(|(i, ch)| {
+            if obstacles.contains(&(i as i32)) {
+                'O'
+            } else {
+                ch
+            }
+        })
+        .collect();
+    println!("\n{}", new_grid);
+    obstacles.len().to_string()
 }
 
-fn run_guard(mut guard: Guard, (grid, _rows, cols): (&str, usize, usize)) -> HashSet<usize> {
-    let mut visited = HashSet::new();
-    visited.insert(guard.idx);
-    let next_n = Rc::new(|i: usize| (i as i32) - (cols as i32) - 1);
-    let next_e = Rc::new(|i: usize| (i as i32) + 1);
-    let next_s = Rc::new(|i: usize| (i as i32) + (cols as i32) + 1);
-    let next_w = Rc::new(|i: usize| (i as i32) - 1);
-    let out_n = Rc::new(|i: i32| i < 0);
-    let out_s = Rc::new(|i: i32| i > (grid.len() as i32));
-    let out_we = Rc::new(|i: i32| grid.chars().nth(i as usize).expect("bad idx") == '\n');
+fn run_guard(
+    mut guard: Guard,
+    (grid, _rows, cols): (&str, usize, usize),
+    obst: Option<usize>,
+) -> (HashSet<(usize, Dir)>, bool) {
+    let mut visited = HashSet::from([(guard.idx, guard.dir)]);
     loop {
-        let (get_next, will_leave): (Rc<dyn Fn(usize) -> i32>, Rc<dyn Fn(i32) -> bool>) =
-            match guard.dir {
-                Direction::N => (next_n.clone(), out_n.clone()),
-                Direction::E => (next_e.clone(), out_we.clone()),
-                Direction::S => (next_s.clone(), out_s.clone()),
-                Direction::W => (next_w.clone(), out_we.clone()),
-            };
-        let next_i: i32 = get_next(guard.idx);
-        if will_leave(next_i) {
-            return visited;
-        } else if grid.chars().nth(next_i as usize).expect("bad idx") == '#' {
+        let next_i: i32 = match guard.dir {
+            Dir::N => (guard.idx as i32) - (cols as i32) - 1,
+            Dir::E => (guard.idx as i32) + 1,
+            Dir::S => (guard.idx as i32) + (cols as i32) + 1,
+            Dir::W => (guard.idx as i32) - 1,
+        };
+        if visited.contains(&(next_i as usize, guard.dir)) {
+            return (visited, true);
+        };
+        if match guard.dir {
+            Dir::N => next_i < 0,
+            Dir::S => next_i >= (grid.len() as i32),
+            Dir::W | Dir::E => grid.chars().nth(next_i as usize).expect("bad idx") == '\n',
+        } {
+            return (visited, false); // left the grid
+        } else if grid.chars().nth(next_i as usize).expect("bad idx") == '#' // hit a real obstacle
+            || obst.is_some_and(|x| x == (next_i as usize))
+        // hit a potential obstacle
+        {
             guard.dir = next_dir(&guard.dir);
         } else {
+            visited.insert((next_i as usize, guard.dir));
             guard.idx = next_i as usize;
-            visited.insert(guard.idx);
         }
     }
 }
 
-fn next_dir(curr: &Direction) -> Direction {
+fn next_dir(curr: &Dir) -> Dir {
     match *curr {
-        Direction::N => Direction::E,
-        Direction::E => Direction::S,
-        Direction::S => Direction::W,
-        Direction::W => Direction::N,
+        Dir::N => Dir::E,
+        Dir::E => Dir::S,
+        Dir::S => Dir::W,
+        Dir::W => Dir::N,
     }
 }
 
-#[derive(Debug)]
-enum Direction {
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+enum Dir {
     N,
     E,
     S,
     W,
 }
 
-impl From<char> for Direction {
+impl From<char> for Dir {
     fn from(value: char) -> Self {
         match value {
             '^' => Self::N,
@@ -90,9 +131,10 @@ impl From<char> for Direction {
     }
 }
 
+#[derive(Clone, Copy)]
 struct Guard {
     idx: usize,
-    dir: Direction,
+    dir: Dir,
 }
 
 impl Guard {
@@ -119,19 +161,27 @@ mod tests {
 									#.........\n\
 									......#...";
 
-    // static SOLVED: &'static str = "....#.....\n\
-    //                                ....XXXXX#\n\
-    //                                ....X...X.\n\
-    //                                ..#.X...X.\n\
-    //                                ..XXXXX#X.\n\
-    //                                ..X.X.X.X.\n\
-    //                                .#XXXXXXX.\n\
-    //                                .XXXXXXX#.\n\
-    //                                #XXXXXXX..\n\
-    //                                ......#X..";
-
     #[test]
     fn test_process() {
-        assert_eq!("41".to_string(), process(EXAMPLE));
+        println!("{}", EXAMPLE);
+        assert_eq!("6".to_string(), process(EXAMPLE));
+
+        let tests = vec![
+            (".#...\n....#\n.....\n.....\n.^.#.", 1),
+            (".....\n>...#\n.....\n#....\n...#.", 1),
+            (".#.v.\n.....\n.....\n#....\n...#.", 1),
+            (".#...\n.....\n.....\n#...<\n...#.", 1),
+            (
+                ".#.v.\n\
+                 .....\n\
+                 .....\n\
+                 #....\n\
+                 ...#.",
+                1,
+            ),
+        ];
+        for (input, expected) in tests {
+            assert_eq!(expected.to_string(), process(input));
+        }
     }
 }

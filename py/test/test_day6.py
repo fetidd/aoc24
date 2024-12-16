@@ -25,7 +25,8 @@ SOLVED = """....#.....
 
 
 def test_main():
-	assert Day6().main(EXAMPLE) == 41 # the number of Xs in SOLVED
+	# assert Day6().main(EXAMPLE) == 41 # the number of Xs in SOLVED
+	assert Day6().main(EXAMPLE) ==  6 # the number of places a new obstacle could be placed to induce a loop
 
 
 @pytest.mark.parametrize(
