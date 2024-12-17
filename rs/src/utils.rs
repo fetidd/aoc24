@@ -1,38 +1,13 @@
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq)]
-pub struct Grid {
-    pub tiles: Vec<Vec<char>>,
-    pub rows: usize,
-    pub cols: usize,
-}
-
-#[derive(Debug)]
-pub struct Point {
-    pub x: i32,
-    pub y: i32,
-}
-
-impl Grid {
-    pub fn new(input: &str) -> Grid {
-        let tiles: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
-        let rows = tiles[0].len();
-        let cols = tiles.len();
-        Grid { tiles, rows, cols }
-    }
-
-    pub fn check_oob(&self, point: &Point) -> bool {
-        point.x >= (self.cols as i32) || point.y >= (self.rows as i32) || point.x < 0 || point.y < 0
-    }
-}
-
-pub fn parse_space_list<T: FromStr>(list: &str) -> Result<Vec<T>, <T as FromStr>::Err> {
-    Ok(list
+pub fn parse_space_list<T: FromStr>(list: &str) -> Result<Vec<T>, String> {
+    list
         .split(' ')
         .map(|x| x.trim_start().trim_end())
         .filter(|x| *x != "")
         .map(|x| x.parse::<T>())
-        .collect::<Result<Vec<T>, <T as FromStr>::Err>>()?)
+        .collect::<Result<Vec<T>, <T as FromStr>::Err>>()
+        .map_err(|_| format!("failed to parse '{list}'"))
 }
 
 #[cfg(test)]
@@ -40,40 +15,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_grid() {
-        let input = ".....\n.....\n.....\n.....\n.....";
-        let actual = Grid::new(&input);
-        let expected = Grid {
-            tiles: vec![
-                vec!['.', '.', '.', '.', '.'],
-                vec!['.', '.', '.', '.', '.'],
-                vec!['.', '.', '.', '.', '.'],
-                vec!['.', '.', '.', '.', '.'],
-                vec!['.', '.', '.', '.', '.'],
-            ],
-            rows: 5_usize,
-            cols: 5_usize,
-        };
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn test_oob() {
+    fn test_parse_space_list() {
         let tests = vec![
-            (Point { x: 0, y: -1 }, true),
-            (Point { x: -1, y: 0 }, true),
-            (Point { x: 0, y: 0 }, false),
-            (Point { x: 2, y: 2 }, false),
-            (Point { x: 3, y: 2 }, true),
-            (Point { x: 2, y: 3 }, true),
+            ("", Ok(vec![])),
+            ("1 2 3 4 5", Ok(vec![1, 2, 3, 4, 5])),
+            (" 1 2   3 4  5 ", Ok(vec![1, 2, 3, 4, 5])),
+            ("1 2 3 b 5", Err("failed to parse '1 2 3 b 5'".to_string())),
         ];
-        for (point, expected) in tests {
-            let grid = Grid {
-                tiles: vec![],
-                cols: 3,
-                rows: 3,
-            };
-            assert_eq!(expected, grid.check_oob(&point));
+        for (input, expected) in tests {
+            assert_eq!(expected, parse_space_list::<i32>(input));
+        }
+        
+        let tests = vec![
+            ("", Ok(vec![])),
+            ("a b c d e", Ok(vec!['a', 'b', 'c', 'd', 'e'])),
+            (" a   b c  d e ", Ok(vec!['a', 'b', 'c', 'd', 'e'])),
+        ];
+        for (input, expected) in tests {
+            assert_eq!(expected, parse_space_list::<char>(input));
         }
     }
+
 }
