@@ -9,48 +9,30 @@ fn main() {
 }
 
 fn process(input: &str) -> String {
-    let mut grid = Grid::new(input);
+    let grid = Grid::new(input);
     let mut antinodes = HashSet::new();
     for x in 0..grid.width {
         for y in 0..grid.height {
             if let Tile::Node(node) = grid.tiles[y][x] {
+                antinodes.insert((x as i32, y as i32));
                 for other in grid.find_other_nodes(node, (x, y)) {
-                    // calculate vector
-                    let vector = (other.0.abs_diff(x), other.1.abs_diff(y));
-                    // add antinode(s) to set
-                    let antinode_1 = (x.checked_sub(vector.0), y.checked_sub(vector.1));
-                    if antinode_1.0.is_some() && antinode_1.1.is_some() {
-                        antinodes.insert((antinode_1.0.unwrap(), antinode_1.1.unwrap()));
-                        if let Tile::Empty =
-                            grid.tiles[antinode_1.1.unwrap()][antinode_1.0.unwrap()]
-                        {
-                            grid.tiles[antinode_1.1.unwrap()][antinode_1.0.unwrap()] =
-                                Tile::Antinode(node.to_ascii_lowercase());
-                        }
-                    }
-                    let antinode_2 = (other.0 + vector.0, other.1 + vector.1);
-                    if antinode_2.0 < grid.width && antinode_2.1 < grid.height {
-                        antinodes.insert(antinode_2);
-                        if let Tile::Empty = grid.tiles[antinode_2.1][antinode_2.0] {
-                            grid.tiles[antinode_2.1][antinode_2.0] =
-                                Tile::Antinode(node.to_ascii_lowercase());
-                        }
-                    }
+                    antinodes.extend(grid.find_antinodes((x, y), other));
                 }
             }
         }
     }
     // dbg!(&antinodes);
-    println!(
-        "{}",
-        grid.tiles
-            .into_iter()
-            .map(|l| l.into_iter().map(|t| t.to_string()).collect::<String>())
-            .collect::<Vec<String>>()
-            .join("\n")
-    );
+    // println!(
+    //     "{}",
+    //     grid.tiles
+    //         .into_iter()
+    //         .map(|l| l.into_iter().map(|t| t.to_string()).collect::<String>())
+    //         .collect::<Vec<String>>()
+    //         .join("\n")
+    // );
     antinodes.len().to_string()
 }
+
 
 struct Grid {
     tiles: Vec<Vec<Tile>>,
@@ -86,14 +68,39 @@ impl Grid {
                 }
             }
         }
-        dbg!(nodes)
+        // dbg!(nodes)
+        nodes
+    }
+    
+    fn find_antinodes(&self, (ax, ay): (usize, usize), (bx, by): (usize, usize)) -> Vec<(i32, i32)> {
+        let (ax, ay, bx, by) = (ax as i32, ay as i32, bx as i32, by as i32);
+        let (vx, vy) = (bx as i32 - ax as i32, by as i32 - ay as i32);
+        let mut antinodes = vec![];
+        // find antinodes before
+        let (mut curr_x, mut curr_y) = (ax - vx, ay - vy);
+        while self.in_bounds((curr_x, curr_y)) {
+            antinodes.push((curr_x, curr_y));
+            curr_x -= vx;
+            curr_y -= vy;
+        }
+        // find antinodes after
+        let (mut curr_x, mut curr_y) = (bx + vx, by + vy);
+        while self.in_bounds((curr_x, curr_y)) {
+            antinodes.push((curr_x, curr_y));
+            curr_x += vx;
+            curr_y += vy;
+        }
+        antinodes
+    }
+
+    fn in_bounds(&self, (x, y): (i32, i32)) -> bool {
+        x >= 0 && y >= 0 && x < self.width as i32 && y < self.height as i32
     }
 }
 
 #[derive(Debug)]
 enum Tile {
     Node(char),
-    Antinode(char),
     Empty,
 }
 
@@ -104,7 +111,7 @@ impl Display for Tile {
             "{}",
             match self {
                 Tile::Node(n) => n.to_string(),
-                Tile::Antinode(n) => n.to_string(),
+                // Tile::Antinode(n) => n.to_string(),
                 Tile::Empty => ".".to_string(),
             }
         )
@@ -115,7 +122,7 @@ impl From<char> for Tile {
     fn from(value: char) -> Self {
         match value {
             '.' | '*' => Self::Empty,
-            'a'..'z' | 'A'..'Z' | '0'..'9' => Self::Node(value),
+            'a'..='z' | 'A'..='Z' | '0'..='9' => Self::Node(value),
             _ => panic!("invalid char"),
         }
     }
@@ -137,21 +144,9 @@ mod tests {
 									.........A..\n\
 									............\n\
 									............";
-    static EXAMPLE_SOLVED: &'static str = "......b....b\n\
-        								   ...a....B...\n\
-        								   ....aB....b.\n\
-        								   ..b....B....\n\
-        								   ....B....b..\n\
-        								   .b....A.....\n\
-        								   ...b........\n\
-        								   b......a....\n\
-        								   ........A...\n\
-        								   .........A..\n\
-        								   ..........a.\n\
-        								   ..........a.";
 
     #[test]
     fn test_process() {
-        assert_eq!(14.to_string(), process(EXAMPLE));
+        assert_eq!(34.to_string(), process(EXAMPLE));
     }
 }

@@ -10,26 +10,30 @@ fn main() {
 
 fn process(input: &str) -> String {
     let mut total = 0;
-    'line_loop: for line in input.lines() {
+    let lines: Vec<(i64, Vec<i64>)> = input.lines().map(|line| {
         let mut s = line.split(':');
         let test_value: i64 = s.next().unwrap().parse().unwrap();
         let equation: Vec<i64> = utils::parse_space_list(&s.collect::<String>()).unwrap();
-        let reducer_length = equation
-            .iter()
-            .reduce(|a, b| if b > a { b } else { a })
-            .unwrap()
-            - 1;
-        let reducers = create_reducers(reducer_length as usize);
-        for reducer in create_reducers(equation.len()) {
-            if equation
-                .iter()
-                .cloned()
-                .enumerate()
-                .reduce(|(_, acc), (new_i, new)| do_reduce(&reducer, acc, new, new_i))
-                .map(|(_, n)| n)
-                .unwrap()
-                == test_value
-            {
+        (test_value, equation)
+    }).collect();
+    let reducer_length = lines.iter().map(|(_, equation)| equation.len()).max().unwrap();
+    let reducers = create_reducers(reducer_length as usize);
+    'line_loop: for i in 0..lines.len() {
+        let (test_value, equation) = &lines[i];
+        for reducer in reducers.iter() {
+            let reducer_slice = &reducer[0..equation.len()];
+            let mut ans = equation[0];
+            let mut eq_pointer = 1;
+            while eq_pointer < equation.len() {
+                match reducer_slice[eq_pointer - 1] {
+                    0 => ans += equation[eq_pointer],
+                    1 => ans *= equation[eq_pointer],
+                    2 => ans = (ans.to_string() + &equation[eq_pointer].to_string()).parse().unwrap(),
+                    _ => panic!("invalid operator"),
+                }
+                eq_pointer += 1;
+            }
+            if &ans == test_value {
                 total += test_value;
                 continue 'line_loop;
             }
@@ -58,14 +62,6 @@ fn create_reducers(num: usize) -> HashSet<Vec<u8>> {
     HashSet::from_iter(reducers)
 }
 
-fn do_reduce(reducer: &Vec<u8>, acc: i64, new: i64, new_i: usize) -> (usize, i64) {
-    match reducer[new_i] {
-        0 => (new_i, acc + new),
-        1 => (new_i, acc * new),
-        2 => (new_i, (acc.to_string() + &new.to_string()).parse().unwrap()),
-        _ => panic!("invalid reducer function specified!"),
-    }
-}
 
 #[cfg(test)]
 mod tests {
