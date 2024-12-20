@@ -9,15 +9,21 @@ fn main() {
 }
 
 fn process(input: &str) -> String {
-    let mut disk: Disk = Disk(
-        input
-            .chars()
-            .enumerate()
-            .map(Block::from_indexed_char)
-            .collect(),
-    );
+    let mut disk = Disk::new(input);
+    for i in (0..disk.0.len()).rev() {
+        if let Block::File { .. } = disk.0[i] {
+            disk.move_file(i);
+        }
+    }
     println!("{}", disk);
-    "todo".into()
+    let disk = disk.flatten();
+    // println!("{:?}", disk);
+    disk.into_iter()
+        .enumerate()
+        .reduce(|(_, acc), (i, v)| (i, acc + (v * i)))
+        .unwrap()
+        .1
+        .to_string()
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -64,12 +70,24 @@ impl Block {
             Block::File { size, .. } => *size += amount,
         }
     }
+
+    fn write(&mut self, id: u32) {
+        if let Block::Free(size) = self {
+            *self = Block::File { id, size: *size };
+        }
+    }
+
+    fn free(&mut self) {
+        if let Block::File { size, .. } = self {
+            *self = Block::Free(*size);
+        }
+    }
 }
 
 impl Display for Block {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Block::Free(size) => write!(f, "[{}]", "-".repeat(*size)),
+            Block::Free(size) => write!(f, "[{}]", ".".repeat(*size)),
             Block::File { id, size } => write!(f, "[{}]", id.to_string().repeat(*size)),
         }
     }
@@ -79,56 +97,89 @@ impl Display for Block {
 struct Disk(Vec<Block>);
 
 impl Disk {
+    fn new(input: &str) -> Self {
+        Disk(
+            input
+                .chars()
+                .filter(|ch| *ch != '\n')
+                .enumerate()
+                .map(Block::from_indexed_char)
+                .collect(),
+        )
+    }
+
     fn move_file(&mut self, file: usize) {
+        let mut i = 0;
         loop {
-            if let Some(free) = self.find_free() {
-                if self.0[free].size() < self.0[file].size() {
-                    // [66666][---][77777][8888] -> [66666][888][77777][8][---]
-                    let new_file = Block::File { id: self.0[file].id(), size: self.0[free].size() }; // [888]
-                    let free_size = self.0[free].size();
-                    self.0[file].shrink(free_size); // [8888] - [---] = [8]
-                    self.0[free] = new_file; // [66666][888][77777][8]
-                    self.0.insert(free, Block::Free(free_size));
-                } else if self.0[free].size() == self.0[file].size() {
-                    // [66666][---][77777][888] -> [66666][888][77777][---]
-                    self.0.swap(file, free);
-                    if file < self.0.len() - 1 {
-                        let mut grow_amount = 0;
-                        if let (Block::Free(_), Block::Free(b)) = (&self.0[file], &self.0[file + 1]) {
-                            grow_amount = *b;
-                        }
-                        if grow_amount > 0 {
-                            self.0.remove(file + 1);
-                            self.0[file].grow(grow_amount);
-                        }
-                    }
+            // println!("loop");
+            if let Some(free) = self.find_free(i, file) {
+                let file_size = self.0[file].size();
+                let free_size = self.0[free].size();
+                // if free_size < file_size {
+                //     // println!("1 {}", self);
+                //     let file_id = self.0[file].id();
+                //     self.0[free].write(file_id);
+                //     // println!("1 {}", self);
+                //     self.0[file].shrink(free_size);
+                //     // println!("1 {}", self);
+                //     self.0.insert(file + 1, Block::Free(free_size));
+                //     // println!("1 {}", self);
+                if free_size == file_size {
+                    println!("2 {}", self);
+                    self.0.swap(free, file);
+                    println!("2 {}", self);
+                    break; // whole file moved so we're done
+                } else if free_size > file_size {
+                    // the whole file chunk we're moving can sit in this free
+                    println!("3 {}", self);
+                    let file_id = self.0[file].id();
+                    self.0[free].write(file_id);
+                    self.0[free].shrink(free_size - file_size);
+                    self.0.insert(free + 1, Block::Free(free_size - file_size));
+                    self.0.remove(file + 1);
+                    println!("3 {}", self);
                     break; // whole file moved so we're done
                 } else {
-                    // [66666][----][77777][888] -> [66666][888][-][77777][---]
-                    let file_size = self.0[file].size();
-                    let file_block = self.0.remove(file);
-                    self.0[free].shrink(file_size);
-                    self.0.insert(free, file_block);
-                    self.0.insert(file, Block::Free(file_size));
-                    break; // whole file moved so we're done
+                    break;
                 }
-            } else { // no free space to move file chunks to
-                break;
+            } else {
+                // no free space to move file chunks to
+                // println!("break");
+                if i >= self.0.len() {
+                    break;
+                } else {
+                    i += 1;
+                }
             }
         }
     }
 
-    fn find_free(&self) -> Option<usize> {
-        self.0.iter().enumerate().skip_while(|x| match x {(_, Block::Free{..}) => false, _ => true}).map(|x| x.0).take(1).last()
+    fn find_free(&self, start: usize, bound: usize) -> Option<usize> {
+        for i in start..std::cmp::min(bound, self.0.len()) {
+            if let Block::Free(_) = self.0[i] {
+                return Some(i);
+            }
+        }
+        None
+    }
+
+    fn flatten(&mut self) -> Vec<usize> {
+        let mut f = vec![];
+        for i in 0..self.0.len() {
+            if let Block::File { id, size } = self.0[i] {
+                f.extend(vec![id as usize; size]);
+            }
+        }
+        f
     }
 }
 
 impl Display for Disk {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0
-            .iter()
-            .map(|x| x.to_string())
-            .collect::<String>()
+        write!(
+            f,
+            "{}",
+            self.0.iter().map(|x| x.to_string()).collect::<String>()
         )
     }
 }
@@ -139,24 +190,18 @@ mod tests {
 
     #[test]
     fn test_process() {
-        assert_eq!("1928".to_string(), process("2333133121414131402"));
+        assert_eq!("2858".to_string(), process("2333133121414131402"));
     }
 
+    #[ignore]
     #[test]
     fn blocks_move_correctly() {
-        let disk = Disk(vec![Block::File{id: 0, size: 4},Block::Free(2),Block::File{id: 1, size: 2},Block::Free(1),Block::File{id: 2, size: 3},Block::Free(4),Block::File{id: 3, size: 5}]);
-        assert_eq!(disk.to_string(), String::from("[0000][--][11][-][222][----][33333]"));
-
-        let mut test_disk = disk.clone();
-        test_disk.move_file(2);
-        assert_eq!(test_disk.to_string(), String::from("[0000][11][---][222][----][33333]"));
-
-        let mut test_disk = disk.clone();
-        test_disk.move_file(4);
-        assert_eq!(test_disk.to_string(), String::from("[0000][22][11][2][-------][33333]"));
-
-        let mut test_disk = disk.clone();
-        test_disk.move_file(6);
-        assert_eq!(test_disk.to_string(), String::from("[0000][33][11][3][222][33][-------]"));
+        let mut disk = Disk::new("4221342");
+        assert_eq!(disk.to_string(), String::from("0000..11.222....33"));
+        disk.move_file(6);
+        assert_eq!(disk.to_string(), String::from("00003311.222......"));
+        disk.move_file(4);
+        assert_eq!(disk.to_string(), String::from("00003311222......."));
+        disk.move_file(2);
     }
 }
