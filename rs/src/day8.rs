@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Display};
-
-// use aoc24::utils;
+mod utils;
+use utils::Grid;
 
 fn main() {
     let input = include_str!("../../puzzle_input/day8.txt");
@@ -34,27 +34,7 @@ fn process(input: &str) -> String {
 }
 
 
-struct Grid {
-    tiles: Vec<Vec<Tile>>,
-    width: usize,
-    height: usize,
-}
-
-impl Grid {
-    fn new(input: &str) -> Self {
-        let tiles: Vec<Vec<Tile>> = input
-            .lines()
-            .map(|l| l.chars().map(Tile::from).collect())
-            .collect();
-        let height = tiles.len();
-        let width = tiles[0].len();
-        Self {
-            tiles,
-            height,
-            width,
-        }
-    }
-
+impl Grid<Tile> {
     fn find_other_nodes(&self, node: char, from: (usize, usize)) -> Vec<(usize, usize)> {
         let mut nodes = vec![];
         for x in 0..self.width {

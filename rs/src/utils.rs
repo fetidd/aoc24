@@ -10,6 +10,29 @@ pub fn parse_space_list<T: FromStr>(list: &str) -> Result<Vec<T>, String> {
         .map_err(|_| format!("failed to parse '{list}'"))
 }
 
+
+pub struct Grid<Tile: From<char>> {
+    pub tiles: Vec<Vec<Tile>>,
+    pub width: usize,
+    pub height: usize,
+}
+
+impl<Tile: From<char>> Grid<Tile> {
+    pub fn new(input: &str) -> Self {
+        let tiles: Vec<Vec<Tile>> = input
+            .lines()
+            .map(|l| l.chars().map(Tile::from).collect())
+            .collect();
+        let height = tiles.len();
+        let width = tiles[0].len();
+        Self {
+            tiles,
+            height,
+            width,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
