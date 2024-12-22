@@ -15,18 +15,42 @@ fn process(input: &str) -> String {
     let mut rels: HashMap<(usize, usize), (&Tile, HashSet<(usize, usize)>)> = HashMap::new();
     for (y, inner) in grid.tiles.iter().enumerate() {
         for (x, tile) in inner.iter().enumerate() {
-            dbg!(&rels);
             rels.insert((x, y), (&tile, HashSet::new()));
-            let entry = rels.entry((x, y));
-            if let Some(right) = grid.tiles[y].get(x + 1) {
-                entry.and_modify(|(_, climbs)| {
-                    if tile.height() == right.height() + 1 {
+            if let Some(possible) = grid.tiles[y].get(x + 1) {
+                if possible.height() > 0 && tile.height() == possible.height() + 1 {
+                    rels.entry((x, y)).and_modify(|(_, climbs)| {
                         climbs.insert((x + 1, y));
-                    }
-                });
+                    });
+                }
+            }
+            if let Some(valid_x) = x.checked_sub(1) {
+                if grid.tiles[y][valid_x].height() > 0
+                    && tile.height() == grid.tiles[y][valid_x].height() - 1
+                {
+                    rels.entry((x, y)).and_modify(|(_, climbs)| {
+                        climbs.insert((valid_x, y));
+                    });
+                }
+            }
+            if let Some(possible) = grid.tiles.get(y + 1) {
+                if possible[x].height() > 0 && tile.height() == possible[x].height() - 1 {
+                    rels.entry((x, y)).and_modify(|(_, climbs)| {
+                        climbs.insert((y + 1, x));
+                    });
+                }
+            }
+            if let Some(valid_y) = y.checked_sub(1) {
+                if grid.tiles[valid_y][x].height() > 0
+                    && tile.height() == grid.tiles[valid_y][x].height() - 1
+                {
+                    rels.entry((x, y)).and_modify(|(_, climbs)| {
+                        climbs.insert((x, valid_y));
+                    });
+                }
             }
         }
     }
+    for (x, y) in rels.keys() {}
     todo!();
 }
 
