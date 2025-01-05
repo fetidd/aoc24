@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Display};
 mod utils;
-use utils::Grid;
+use utils::grid::{Grid, GridPos};
 
 fn main() {
     let input = include_str!("../../puzzle_input/day8.txt");
@@ -9,72 +9,53 @@ fn main() {
 }
 
 fn process(input: &str) -> String {
-    let grid = Grid::new(input);
-    let mut antinodes = HashSet::new();
-    for x in 0..grid.width {
-        for y in 0..grid.height {
-            if let Tile::Node(node) = grid.tiles[y][x] {
-                antinodes.insert((x as i32, y as i32));
-                for other in grid.find_other_nodes(node, (x, y)) {
-                    antinodes.extend(grid.find_antinodes((x, y), other));
-                }
+    let grid: Grid<Tile> = Grid::new(input);
+    let mut antinodes: HashSet<GridPos> = HashSet::new();
+    for (pos, _) in grid.iter() {
+        if let Some(Tile::Node(node)) = grid.at(pos) {
+            antinodes.insert(pos);
+            for other in grid.find_other_nodes(*node, pos) {
+                antinodes.extend(grid.find_antinodes(pos, other));
             }
         }
     }
-    // dbg!(&antinodes);
-    // println!(
-    //     "{}",
-    //     grid.tiles
-    //         .into_iter()
-    //         .map(|l| l.into_iter().map(|t| t.to_string()).collect::<String>())
-    //         .collect::<Vec<String>>()
-    //         .join("\n")
-    // );
     antinodes.len().to_string()
 }
 
-
 impl Grid<Tile> {
-    fn find_other_nodes(&self, node: char, from: (usize, usize)) -> Vec<(usize, usize)> {
+    fn find_other_nodes(&self, node: char, from: GridPos) -> Vec<GridPos> {
         let mut nodes = vec![];
-        for x in 0..self.width {
-            for y in 0..self.height {
-                if (x, y) != from {
-                    if let Tile::Node(other) = self.tiles[y][x] {
-                        if other == node {
-                            nodes.push((x, y));
-                        }
+        for (pos, _) in self {
+            if pos != from {
+                if let Some(Tile::Node(other)) = self.at(pos) {
+                    if *other == node {
+                        nodes.push(pos);
                     }
                 }
             }
         }
-        // dbg!(nodes)
         nodes
     }
-    
-    fn find_antinodes(&self, (ax, ay): (usize, usize), (bx, by): (usize, usize)) -> Vec<(i32, i32)> {
+
+    fn find_antinodes(&self, (ax, ay): GridPos, (bx, by): GridPos) -> Vec<GridPos> {
         let (ax, ay, bx, by) = (ax as i32, ay as i32, bx as i32, by as i32);
         let (vx, vy) = (bx as i32 - ax as i32, by as i32 - ay as i32);
         let mut antinodes = vec![];
         // find antinodes before
         let (mut curr_x, mut curr_y) = (ax - vx, ay - vy);
-        while self.in_bounds((curr_x, curr_y)) {
-            antinodes.push((curr_x, curr_y));
+        while self.in_bounds_i32((curr_x, curr_y)) {
+            antinodes.push((curr_x as usize, curr_y as usize));
             curr_x -= vx;
             curr_y -= vy;
         }
         // find antinodes after
         let (mut curr_x, mut curr_y) = (bx + vx, by + vy);
-        while self.in_bounds((curr_x, curr_y)) {
-            antinodes.push((curr_x, curr_y));
+        while self.in_bounds_i32((curr_x, curr_y)) {
+            antinodes.push((curr_x as usize, curr_y as usize));
             curr_x += vx;
             curr_y += vy;
         }
         antinodes
-    }
-
-    fn in_bounds(&self, (x, y): (i32, i32)) -> bool {
-        x >= 0 && y >= 0 && x < self.width as i32 && y < self.height as i32
     }
 }
 

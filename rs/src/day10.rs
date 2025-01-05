@@ -1,7 +1,7 @@
 mod utils;
 use std::collections::{HashMap, HashSet};
 
-use utils::Grid;
+use utils::grid::{Grid, GridCursor, GridPos};
 
 fn main() {
     let input = include_str!("../../puzzle_input/day10.txt");
@@ -9,82 +9,72 @@ fn main() {
     println!("{}", result);
 }
 
-type RelMap<'a> = HashMap<(usize, usize), (&'a Tile, HashSet<(usize, usize)>)>;
+type RelMap<'a> = HashMap<GridPos, (&'a Tile, HashSet<GridPos>)>;
 
 fn process(input: &str) -> String {
     let grid: Grid<Tile> = Grid::new(input);
-    let mut scores = 0;
     let mut rels: RelMap = HashMap::new();
-    println!("processing grid...");
-    for (y, inner) in grid.tiles.iter().enumerate() {
-        for (x, tile) in inner.iter().enumerate() {
-            rels.insert((x, y), (&tile, HashSet::new()));
-            if let Some(possible) = grid.tiles[y].get(x + 1) {
-                if possible.height() > 0 && tile.height() == possible.height() + 1 {
-                    rels.entry((x, y)).and_modify(|(_, climbs)| {
-                        climbs.insert((x + 1, y));
-                    });
-                }
-            }
-            if let Some(valid_x) = x.checked_sub(1) {
-                if grid.tiles[y][valid_x].height() > 0
-                    && tile.height() == grid.tiles[y][valid_x].height() - 1
-                {
-                    rels.entry((x, y)).and_modify(|(_, climbs)| {
-                        climbs.insert((valid_x, y));
-                    });
-                }
-            }
-            if let Some(possible) = grid.tiles.get(y + 1) {
-                if possible[x].height() > 0 && tile.height() == possible[x].height() - 1 {
-                    rels.entry((x, y)).and_modify(|(_, climbs)| {
-                        climbs.insert((y + 1, x));
-                    });
-                }
-            }
-            if let Some(valid_y) = y.checked_sub(1) {
-                if grid.tiles[valid_y][x].height() > 0
-                    && tile.height() == grid.tiles[valid_y][x].height() - 1
-                {
-                    rels.entry((x, y)).and_modify(|(_, climbs)| {
-                        climbs.insert((x, valid_y));
-                    });
+    for (pos, tile) in &grid {
+        let mut nexts = HashSet::new();
+        let mut c = grid.cursor();
+        c.goto(pos).expect("this should always be in bounds");
+        for peek in [
+            GridCursor::north,
+            GridCursor::east,
+            GridCursor::south,
+            GridCursor::west,
+        ] {
+            if let Some((possible_pos, possible)) = peek(&c) {
+                if possible.height() == tile.height() + 1 {
+                    nexts.insert(possible_pos);
                 }
             }
         }
+        rels.insert(c.pos(), (tile, nexts));
     }
-    println!("calculating...");
-    println!("{:?}", rels.keys());
-    println!("{:?}", rels.values());
-    for (tile, neighbours) in rels.values() {
+    let mut scores = 0;
+    for (_, (tile, neighbours)) in &rels {
         if tile.height() == 0 {
+            let mut trails = HashSet::new();
             for n in neighbours {
-                let sc = calculate_score(&n, &rels);
-                scores += sc;
+                let mut trail = vec![];
+                find_trails(&n, &rels, &mut trail, &mut trails);
             }
+            scores += trails.len();
         }
     }
     scores.to_string()
 }
 
-fn calculate_score(coord: &(usize, usize), rels: &RelMap) -> u32 {
+fn find_trails(
+    coord: &GridPos,
+    rels: &RelMap,
+    mut trail: &mut Vec<GridPos>,
+    mut trails: &mut HashSet<Vec<GridPos>>,
+) {
     if let Some((tile, neighbours)) = rels.get(&coord) {
+        trail.push(*coord);
         if tile.height() == 9 {
-            1
+            trails.insert(trail.to_owned());
         } else {
-            let mut score = 0;
             for n in neighbours {
-                let sc = calculate_score(n, rels);
-                score += sc;
+                find_trails(n, rels, &mut trail, &mut trails);
             }
-            score
         }
-    } else {
-        0
     }
 }
 
-impl Grid<Tile> {}
+// fn find_peaks(coord: &GridPos, rels: &RelMap, mut peaks: &mut HashSet<GridPos>) {
+//     if let Some((tile, neighbours)) = rels.get(&coord) {
+//         if tile.height() == 9 {
+//             peaks.insert(*coord);
+//         } else {
+//             for n in neighbours {
+//                 find_peaks(n, rels, &mut peaks);
+//             }
+//         }
+//     }
+// }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 enum Tile {
@@ -127,14 +117,18 @@ mod tests {
 						   01329801\n\
 						   10456732";
 
-    // #[ignore]
+    const SMALL_EXAMPLE: &str = "0123\n\
+    						     9854\n\
+    						     8765";
+
     #[test]
     fn test_process() {
+        assert_eq!("1".to_string(), process(SMALL_EXAMPLE));
         assert_eq!("36".to_string(), process(EXAMPLE));
     }
 
     #[test]
-    fn test_calculate_score() {
+    fn test_fine_peaks() {
         let tile_0 = Tile::Trailhead;
         let tile_1 = Tile::Level(1);
         let tile_2 = Tile::Level(2);
@@ -157,11 +151,8 @@ mod tests {
             ((1, 9), (&tile_8, HashSet::from([(1, 10)]))),
             ((1, 10), (&tile_9, HashSet::new())),
         ]);
-        assert_eq!(1, calculate_score(&(1, 1), &rels));
-        for (tile, neighbours) in rels.values() {
-            for n in neighbours {
-                println!("{}", rels.get(&n).unwrap().0.height());
-            }
-        }
+        let mut peaks = HashSet::new();
+        find_peaks(&(1, 1), &rels, &mut peaks);
+        assert_eq!(1, peaks.len());
     }
 }
