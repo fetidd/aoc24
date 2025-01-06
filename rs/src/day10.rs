@@ -64,17 +64,17 @@ fn find_trails(
     }
 }
 
-// fn find_peaks(coord: &GridPos, rels: &RelMap, mut peaks: &mut HashSet<GridPos>) {
-//     if let Some((tile, neighbours)) = rels.get(&coord) {
-//         if tile.height() == 9 {
-//             peaks.insert(*coord);
-//         } else {
-//             for n in neighbours {
-//                 find_peaks(n, rels, &mut peaks);
-//             }
-//         }
-//     }
-// }
+fn find_peaks(coord: &GridPos, rels: &RelMap, mut peaks: &mut HashSet<GridPos>) {
+    if let Some((tile, neighbours)) = rels.get(&coord) {
+        if tile.height() == 9 {
+            peaks.insert(*coord);
+        } else {
+            for n in neighbours {
+                find_peaks(n, rels, &mut peaks);
+            }
+        }
+    }
+}
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 enum Tile {
@@ -123,8 +123,8 @@ mod tests {
 
     #[test]
     fn test_process() {
-        assert_eq!("1".to_string(), process(SMALL_EXAMPLE));
-        assert_eq!("36".to_string(), process(EXAMPLE));
+        assert_eq!("4".to_string(), process(SMALL_EXAMPLE));
+        assert_eq!("81".to_string(), process(EXAMPLE));
     }
 
     #[test]
