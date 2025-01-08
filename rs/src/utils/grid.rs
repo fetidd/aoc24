@@ -77,6 +77,8 @@ pub struct GridCursor<'grid, Tile: From<char>> {
     pos: GridPos,
 }
 
+pub type GridPeekFn<'a, Tile> = fn(&'a GridCursor<'a, Tile>) -> Option<(GridPos, &'a char)>;
+
 impl<'grid, Tile: From<char>> GridCursor<'grid, Tile> {
     pub fn goto(&mut self, (x, y): GridPos) -> Result<(), String> {
         if self.grid.in_bounds((x, y)) {
@@ -85,6 +87,10 @@ impl<'grid, Tile: From<char>> GridCursor<'grid, Tile> {
         } else {
             Err(String::from("Out of bounds!"))
         }
+    }
+
+    pub fn goto_unchecked(&mut self, pos: GridPos) {
+        self.pos = pos;
     }
 
     pub fn up(&mut self) -> Result<(), String> {
