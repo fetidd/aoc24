@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{cmp::Ordering, fmt::Debug};
 
 use super::*;
 
@@ -71,6 +71,15 @@ impl<Tile: From<char>> Grid<Tile> {
 }
 
 pub type GridPos = (usize, usize);
+
+pub fn cmp_grid_pos(p1: &GridPos, p2: &GridPos) -> Ordering {
+    let y_sort = p1.1.cmp(&p2.1);
+    if y_sort == Ordering::Equal {
+        p1.0.cmp(&p2.0)
+    } else {
+        y_sort
+    }
+}
 
 pub struct GridCursor<'grid, Tile: From<char>> {
     grid: &'grid Grid<Tile>,
@@ -158,14 +167,14 @@ impl<'grid, Tile: From<char>> GridCursor<'grid, Tile> {
         }
     }
 
-    pub fn east(&self) -> Option<(GridPos, &'grid Tile)> {
+    pub fn west(&self) -> Option<(GridPos, &'grid Tile)> {
         match self.pos.0.checked_sub(1) {
             Some(x) => self.peek((x, self.pos.1)),
             None => None,
         }
     }
 
-    pub fn west(&self) -> Option<(GridPos, &'grid Tile)> {
+    pub fn east(&self) -> Option<(GridPos, &'grid Tile)> {
         self.peek((self.pos.0 + 1, self.pos.1))
     }
 
