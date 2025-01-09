@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use aoc24::utils::{
-    self,
-    grid::{Grid, GridCursor, GridPeekFn, GridPos}, Dir,
+    grid::{Grid, GridCursor, GridPeekFn, GridPos},
+    Dir,
 };
 
 fn main() {
@@ -15,10 +15,10 @@ fn process(input: &str) -> String {
     let grid: Grid<char> = Grid::new(input);
     let mut total_cost = 0;
     let mut assigned: HashSet<GridPos> = HashSet::new();
-    for (pos, char) in &grid {
+    for (pos, kind) in &grid {
         if !assigned.contains(&pos) {
-            let region = Region::plot(*char, pos, &grid);
-            assigned.extend(&region.content);
+            let region = Region::map_out(*kind, pos, &grid);
+            assigned.extend(region.content.keys());
             // total_cost += region.area() * region.perimeter();
             total_cost += region.area() * region.sides();
         }
@@ -26,82 +26,87 @@ fn process(input: &str) -> String {
     total_cost.to_string()
 }
 
+#[derive(Debug, Clone, PartialEq)]
+struct Plot {
+    kind: char,
+    pos: GridPos,
+    fences: Vec<Dir>,
+}
+
+impl Plot {
+    fn new(kind: char, pos: GridPos) -> Self {
+        Self {
+            kind,
+            pos,
+            fences: vec![],
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Region<'grid> {
     kind: char,
-    content: Vec<GridPos>,
-    grid: &'grid Grid<char>
+    content: HashMap<GridPos, Plot>,
+    grid: &'grid Grid<char>,
 }
 
 impl<'grid> Region<'grid> {
-    fn plot(kind: char, pos: GridPos, grid: &'grid Grid<char>) -> Self {
-        let mut visited = HashSet::new();
-        let mut plotted = vec![];
-        plot_region(&mut plotted, pos, &grid, &mut visited, &kind);
+    fn map_out(kind: char, pos: GridPos, grid: &'grid Grid<char>) -> Self {
+        let mut content = HashMap::new();
+        map_out_region(&mut content, pos, &grid, kind);
         Self {
             kind,
-            content: plotted,
-            grid
+            content,
+            grid,
         }
     }
-    
+
     fn area(&self) -> usize {
         self.content.len()
     }
 
     fn sides(&self) -> usize {
-        todo!()
-    }
-
-    fn get_plot_fences(&self, pos: GridPos) -> Vec<Dir> {
-        let mut fences: Vec<Dir> = vec![];
-        let mut cursor = self.grid.cursor();
-        cursor.goto_unchecked(pos);    
-        for (peek, dir) in [
-            (GridCursor::north as GridPeekFn<char>, Dir::Up),
-            (GridCursor::east as GridPeekFn<char>, Dir::Right),
-            (GridCursor::south as GridPeekFn<char>, Dir::Down),
-            (GridCursor::west as GridPeekFn<char>, Dir::Left),
-        ] {
-            if let Some((_, peeked)) = peek(&cursor) {
-                if *peeked != self.kind {
-                    fences.push(dir);
-                }
-            } else {
-                fences.push(dir); // off the edge of the grid counts as fence!
-            }
+        let mut sides = 0;
+        for (pos, plot) in &self.content {
+            println!("({}, {}) -> {plot:?}", pos.0, pos.1);
         }
-        fences
+        sides
     }
 
     fn perimeter(&self) -> usize {
-        let mut perimeter = 0;
-        for pos in &self.content {
-            perimeter += self.get_plot_fences(*pos).len();
-        }
-        perimeter
+        self.content.iter().map(|(_, p)| p.fences.len()).sum()
     }
 }
 
-fn plot_region(mut plotted: &mut Vec<GridPos>, pos: GridPos, grid: &Grid<char>, mut visited: &mut HashSet<GridPos>, kind: &char) {
-    visited.insert(pos);
-    plotted.push(pos);
+fn map_out_region(
+    mut mapped: &mut HashMap<GridPos, Plot>,
+    pos: GridPos,
+    grid: &Grid<char>,
+    kind: char,
+) {
+    let plot = Plot::new(kind, pos);
+    mapped.insert(pos, plot);
     let mut cursor = grid.cursor();
     cursor.goto_unchecked(pos);
-    for peek in [
-        GridCursor::north,
-        GridCursor::east,
-        GridCursor::south,
-        GridCursor::west,
+    for (peek, dir) in [
+        (GridCursor::north as GridPeekFn<char>, Dir::Up),
+        (GridCursor::east as GridPeekFn<char>, Dir::Right),
+        (GridCursor::south as GridPeekFn<char>, Dir::Down),
+        (GridCursor::west as GridPeekFn<char>, Dir::Left),
     ] {
-        if let Some((possible_pos, possible)) = peek(&cursor) {
-            if !visited.contains(&possible_pos) && possible == kind {
-                plot_region(&mut plotted, possible_pos, &grid, &mut visited, kind);
+        if let Some((peeked_pos, peeked)) = peek(&cursor) {
+            if *peeked == kind {
+                if !mapped.contains_key(&peeked_pos) {
+                    map_out_region(&mut mapped, peeked_pos, &grid, kind);
+                }
+            } else {
+                mapped.entry(pos).and_modify(|p| p.fences.push(dir));
             }
+        } else {
+            mapped.entry(pos).and_modify(|p| p.fences.push(dir));
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -124,14 +129,14 @@ mod tests {
         assert_eq!("1206".to_string(), process(EXAMPLE));
     }
 
-    // #[test]
-    // fn test_calculate_region() {
-    //     let tests = [
-    //         ("RRRR.\nRRRR.\n..RRR\n..R..", 216),
-    //         ("....\n.II.\n.II.\n....", 32),
-    //     ];
-    //     for (region, expected) in tests {
-    //         assert_eq!(expected, calculate_region(region));
-    //     }
-    // }
+    #[test]
+    fn test_sides() {
+        let tests = [("RRRR.\nRRRR.\n..RRR\n..R..", 216)];
+        for (region, expected) in tests {
+            println!("{region}");
+            let grid = Grid::new(&region);
+            let region = Region::map_out('R', (0, 0), &grid);
+            assert_eq!(expected, region.sides());
+        }
+    }
 }

@@ -77,7 +77,7 @@ pub struct GridCursor<'grid, Tile: From<char>> {
     pos: GridPos,
 }
 
-pub type GridPeekFn<'a, Tile> = fn(&'a GridCursor<'a, Tile>) -> Option<(GridPos, &'a char)>;
+pub type GridPeekFn<'a, Tile> = fn(&'a GridCursor<'a, Tile>) -> Option<(GridPos, &'a Tile)>;
 
 impl<'grid, Tile: From<char>> GridCursor<'grid, Tile> {
     pub fn goto(&mut self, (x, y): GridPos) -> Result<(), String> {
