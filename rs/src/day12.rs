@@ -108,6 +108,10 @@ impl<'grid> Region<'grid> {
     fn sides(&self) -> usize {
         let mut sides = 0;
         println!("{self}");
+        let mut plots: Vec<_> = self.content.iter().collect();
+        plots.sort_by(|(a, _), (b, _)| cmp_grid_pos(a, b));
+        let plots: Vec<_> = plots.into_iter().map(|(_, p)| p).collect();
+        dbg!(plots[0]);
         sides
     }
 
@@ -159,7 +163,7 @@ impl PlotDisplay {
         Self {
             top: row,
             mid: (' ', plot.kind, ' '),
-            bot: row
+            bot: row,
         }
     }
 }
@@ -200,7 +204,10 @@ impl<'grid> std::fmt::Display for Region<'grid> {
                 to_process.push(sorted_positions[j]);
                 j += 1;
             }
-            let plots: Vec<&Plot> = to_process.iter().map(|pos| self.content.get(pos).unwrap()).collect();
+            let plots: Vec<&Plot> = to_process
+                .iter()
+                .map(|pos| self.content.get(pos).unwrap())
+                .collect();
             let mut top_line = String::new();
             let mut mid_line = String::new();
             let mut bot_line = String::new();
@@ -210,16 +217,25 @@ impl<'grid> std::fmt::Display for Region<'grid> {
                 if let Some(plot) = curr_plot {
                     if plot.pos.0 == indent {
                         let display = PlotDisplay::from(*plot);
-                        top_line.push_str(&format!("{}{}{}", display.top.0, display.top.1, display.top.2));
-                        mid_line.push_str(&format!("{}{}{}", display.mid.0, display.mid.1, display.mid.2));
-                        bot_line.push_str(&format!("{}{}{}", display.bot.0, display.bot.1, display.bot.2));
+                        top_line.push_str(&format!(
+                            "{}{}{}",
+                            display.top.0, display.top.1, display.top.2
+                        ));
+                        mid_line.push_str(&format!(
+                            "{}{}{}",
+                            display.mid.0, display.mid.1, display.mid.2
+                        ));
+                        bot_line.push_str(&format!(
+                            "{}{}{}",
+                            display.bot.0, display.bot.1, display.bot.2
+                        ));
                         curr_plot = plots_iter.next();
                     } else {
                         top_line.push_str("   ");
                         mid_line.push_str("   ");
                         bot_line.push_str("   ");
                     }
-                } 
+                }
             }
             let line = [top_line, mid_line, bot_line, "".into()].join("\n");
             output.push_str(&line);
