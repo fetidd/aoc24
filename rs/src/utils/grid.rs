@@ -31,6 +31,14 @@ impl<Tile: From<char>> Grid<Tile> {
         }
     }
 
+    pub fn cursor_at<'a>(&'a self, pos: GridPos) -> Result<GridCursor<'a, Tile>, String> {
+        if self.in_bounds(pos) {
+            Ok(GridCursor { grid: self, pos })
+        } else {
+            Err(String::from("out of bounds!"))
+        }
+    }
+
     fn in_bounds(&self, (x, y): (usize, usize)) -> bool {
         x < self.width && y < self.height
     }

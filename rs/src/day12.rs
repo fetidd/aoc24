@@ -26,7 +26,7 @@ fn process(input: &str) -> String {
     total_cost.to_string()
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Fences {
     top: bool,
     left: bool,
@@ -62,7 +62,7 @@ impl Fences {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct Plot {
     kind: char,
     pos: GridPos,
@@ -108,17 +108,26 @@ impl<'grid> Region<'grid> {
     fn sides(&self) -> usize {
         let mut sides = 0;
         println!("{self}");
-        let mut plots: Vec<_> = self.content.iter().collect();
-        plots.sort_by(|(a, _), (b, _)| cmp_grid_pos(a, b));
-        let plots: Vec<_> = plots.into_iter().map(|(_, p)| p).collect();
-        dbg!(plots[0]);
+        let mut to_go: HashMap<GridPos, Plot> = self
+            .content
+            .iter()
+            .map(|(pos, p)| (*pos, p.to_owned()))
+            .filter(|(_, p)| p.is_edge())
+            .collect();
+        for pos in self.content.keys() {
+            if to_go.contains(pos) {
+                let c = self.grid.cursor_at(pos).unwrap();
+                if let Some(plot) = to_go.get_mut(plot) {
+                    
+                }
+            }
+        }
         sides
     }
 
     fn perimeter(&self) -> usize {
         self.content.iter().map(|(_, p)| p.fences.count()).sum()
     }
-}
 
 fn map_out_region(
     mut mapped: &mut HashMap<GridPos, Plot>,
