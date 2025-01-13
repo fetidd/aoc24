@@ -1,7 +1,7 @@
 if [[ -n $1 ]]; 
 then
   touch "$HOME/aoc24/rs/src/day$1.rs"
-  echo -e "use aoc24::utils;\n\nfn main() {\n\tlet input = include_str!(\"../../puzzle_input/day$1.txt\");\n\tlet result = process(&input);\n\tprintln!(\"{}\", result);\n}\n\nfn process(input: &str) -> String {\n\tinput.to_string()\n}\n\n#[cfg(test)]\nmod tests {\n\tuse super::*;\n\n\t#[test]\n\tfn test_process() {\n\t\tassert_eq!(\"input\".to_string(), process(\"input\"));\n\t}\n}\n\n" > "$HOME/aoc24/rs/src/day$1.rs"
+  echo -e "use aoc24::utils;\n\nfn main() {\n\tlet input = include_str!(\"../../puzzle_input/day$1.txt\");\n\tlet result = process(&input);\n\tprintln!(\"{}\", result);\n}\n\nfn process(input: &str) -> String {\n\tinput.to_string()\n}\n\n#[cfg(test)]\nmod tests {\n\tuse super::*;\n\n\tconst EXAMPLE: &str = \"\";\n\n\t#[test]\n\tfn test_process() {\n\t\tassert_eq!(\"\".to_string(), process(EXAMPLE));\n\t}\n}\n\n" > "$HOME/aoc24/rs/src/day$1.rs"
 
   touch "$HOME/aoc24/puzzle_input/day$1.txt"
 
